@@ -122,22 +122,13 @@ class GitHubRepoMonitor:
             print(f"  - {update}")
     
     def set_github_output(self, name, value):
-        """Set GitHub Actions environment variable with proper escaping"""
+        """Set GitHub Actions environment variable"""
         try:
             # Set environment variable for GitHub Actions
             github_env = os.getenv('GITHUB_ENV')
             if github_env:
-                # For multiline values, use heredoc syntax
-                if '\n' in str(value) or '<' in str(value) or '>' in str(value):
-                    delimiter = f"EOF_{name}_{int(datetime.now().timestamp())}"
-                    with open(github_env, 'a') as f:
-                        f.write(f"{name}<<{delimiter}\n")
-                        f.write(f"{value}\n")
-                        f.write(f"{delimiter}\n")
-                else:
-                    # Simple single-line values
-                    with open(github_env, 'a') as f:
-                        f.write(f"{name}={value}\n")
+                with open(github_env, 'a') as f:
+                    f.write(f"{name}={value}\n")
             else:
                 # Fallback for local testing
                 os.environ[name] = str(value)

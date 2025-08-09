@@ -8,6 +8,7 @@ import requests
 import re
 import json
 import os
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -111,10 +112,11 @@ class GitHubRepoMonitor:
         self.set_github_output("UPDATES_DETECTED", "true")
         self.set_github_output("CHECK_TIME", datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'))
         
-        # Create HTML list of updates
-        update_html = ""
+        # Create HTML list of updates (without trailing newlines)
+        update_html_items = []
         for update in self.updates_detected:
-            update_html += f"<li>{update}</li>\n"
+            update_html_items.append(f"<li>{update}</li>")
+        update_html = "".join(update_html_items)
         self.set_github_output("UPDATE_DETAILS", update_html)
         
         print("\n🚨 NOTIFICATION: Updates detected!")
@@ -127,8 +129,10 @@ class GitHubRepoMonitor:
             # Set environment variable for GitHub Actions
             github_env = os.getenv('GITHUB_ENV')
             if github_env:
+                # Use heredoc syntax for values that might contain special characters
+                delimiter = f"EOF_{uuid.uuid4().hex[:8]}"
                 with open(github_env, 'a') as f:
-                    f.write(f"{name}={value}\n")
+                    f.write(f"{name}<<{delimiter}\n{value}\n{delimiter}\n")
             else:
                 # Fallback for local testing
                 os.environ[name] = str(value)

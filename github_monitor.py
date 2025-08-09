@@ -101,15 +101,39 @@ class GitHubRepoMonitor:
         print(f"✓ {repo_name}: {timestamp.strftime('%Y-%m-%d %H:%M UTC')}")
 
     def create_github_issue_if_updates(self):
-        """Create a GitHub issue if updates were detected"""
+        """Set environment variables for GitHub Actions email notifications"""
         if not self.updates_detected:
+            # No updates detected
+            self.set_github_output("UPDATES_DETECTED", "false")
             return
             
-        # This would require GitHub token and repo setup
-        # For now, just print the notification
+        # Updates detected - set environment variables for email
+        self.set_github_output("UPDATES_DETECTED", "true")
+        self.set_github_output("CHECK_TIME", datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'))
+        
+        # Create HTML list of updates
+        update_html = ""
+        for update in self.updates_detected:
+            update_html += f"<li>{update}</li>\n"
+        self.set_github_output("UPDATE_DETAILS", update_html)
+        
         print("\n🚨 NOTIFICATION: Updates detected!")
         for update in self.updates_detected:
             print(f"  - {update}")
+    
+    def set_github_output(self, name, value):
+        """Set GitHub Actions environment variable"""
+        try:
+            # Set environment variable for GitHub Actions
+            github_env = os.getenv('GITHUB_ENV')
+            if github_env:
+                with open(github_env, 'a') as f:
+                    f.write(f"{name}={value}\n")
+            else:
+                # Fallback for local testing
+                os.environ[name] = str(value)
+        except Exception as e:
+            print(f"Warning: Could not set GitHub output {name}: {e}")
 
     def check_repositories(self):
         """Check all repositories for updates"""

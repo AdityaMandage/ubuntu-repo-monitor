@@ -24,6 +24,7 @@ jobs:
         pip install requests
         
     - name: Run monitor
+      id: monitor
       run: |
         python github_monitor.py
         
@@ -36,3 +37,47 @@ jobs:
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Send Email Notification
+      if: env.UPDATES_DETECTED == 'true'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🚨 Ubuntu Repository Updates Detected!"
+        html_body: |
+          <h2>Ubuntu Repository Updates Detected!</h2>
+          <p><strong>Time:</strong> ${{ env.CHECK_TIME }}</p>
+          <p><strong>Updates found in:</strong></p>
+          <ul>
+          ${{ env.UPDATE_DETAILS }}
+          </ul>
+          <p><strong>View full logs:</strong> <a href="https://github.com/AdityaMandage/ubuntu-repo-monitor/tree/main/logs">Repository Logs</a></p>
+          <p><strong>GitHub Actions:</strong> <a href="https://github.com/AdityaMandage/ubuntu-repo-monitor/actions">View Workflow Runs</a></p>
+          <hr>
+          <p><small>This notification was sent automatically by GitHub Actions</small></p>
+        to: ${{ secrets.NOTIFICATION_EMAIL }}
+        from: "Ubuntu Monitor <${{ secrets.EMAIL_USERNAME }}>"
+        
+    - name: Send Email on Error
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "❌ Ubuntu Monitor Error"
+        body: |
+          Ubuntu Repository Monitor encountered an error during execution.
+          
+          Time: $(date)
+          Workflow: ${{ github.workflow }}
+          Run: ${{ github.run_number }}
+          
+          Please check the GitHub Actions logs for details:
+          https://github.com/AdityaMandage/ubuntu-repo-monitor/actions
+        to: ${{ secrets.NOTIFICATION_EMAIL }}
+        from: "Ubuntu Monitor <${{ secrets.EMAIL_USERNAME }}>"
